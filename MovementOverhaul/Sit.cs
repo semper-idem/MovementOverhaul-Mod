@@ -1,4 +1,4 @@
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
@@ -97,23 +97,6 @@ namespace MovementOverhaul
 
             if (!Context.IsWorldReady) return;
 
-            if (this.comboSparklingText != null && this.comboSparklingText.update(Game1.currentGameTime))
-                this.comboSparklingText = null;
-                    
-            float elapsedPerfSeconds = (float)Game1.currentGameTime.ElapsedGameTime.TotalSeconds;
-            if (this.comboSitWindowTimer > 0)
-            {
-                this.comboSitWindowTimer -= elapsedPerfSeconds;
-                if (this.comboSitWindowTimer <= 0)
-                {
-                    this.comboSitWindowTimer = 0;
-                    this.comboSitCount = 0;
-                    this.comboSitTriggered = false;
-                }
-            }
-
-            
-
             bool isSittingInChairThisTick = Game1.player.isSitting.Value;
             
             if (isSittingInChairThisTick)
@@ -181,6 +164,7 @@ namespace MovementOverhaul
                 this.HandleFireBuff(elapsedSeconds);
                 this.HandleMeditateBuff(elapsedSeconds);
                 this.HandleIdleEffects(elapsedSeconds);
+                this.HandleComboSitTick();
             }
 
             this.wasSittingInChairLastTick = isSittingInChairThisTick;
@@ -190,35 +174,6 @@ namespace MovementOverhaul
         {
             if (this.IsSittingOnGround) return;
             ModEntry.Instance.LogDebug("NOW GROUND SITTING! YEAH DIRTY PANTS!");
-
-            float windowSec = ModEntry.Instance.Config.ComboSitWindowSeconds;
-            int repsRequired = Math.Max(2, ModEntry.Instance.Config.ComboSitRepsRequired);
-
-            if (this.comboSitWindowTimer <= 0)
-            {
-                this.comboSitWindowTimer = Math.Max(0.5f, windowSec);
-                this.comboSitCount = 0;
-                this.comboSitTriggered = false;
-            }
-
-            this.comboSitCount++;
-            if (!this.comboSitTriggered && this.comboSitCount >= repsRequired)
-            {
-                this.comboSitTriggered = true;
-                
-
-                this.comboSparklingText = new SparklingText(
-                    font: Game1.smallFont,
-                    text: this.Helper.Translation.Get("hud.combo-sit-message"),
-                    color: Color.Gold,
-                    sparkleColor: Color.White
-                );
-                float energyOnComboSit = ModEntry.Instance.Config.EnergyOnComboSit;
-                if (energyOnComboSit > 0)
-                {
-                    Game1.player.stamina = Math.Min(Game1.player.MaxStamina, Game1.player.stamina + energyOnComboSit);
-                }
-            }
 
             this.isSittingOnGround = true;
             Game1.player.canMove = false;
@@ -249,10 +204,8 @@ namespace MovementOverhaul
             Game1.playSound("pickUpItem");
 
             float energyOnSit = ModEntry.Instance.Config.EnergyOnSit;
-            if (energyOnSit > 0) 
-            {
-                Game1.player.stamina = Math.Min(Game1.player.MaxStamina, Game1.player.stamina + energyOnSit);
-            }
+            if (energyOnSit > 0) Game1.player.stamina = Math.Min(Game1.player.MaxStamina, Game1.player.stamina + energyOnSit);
+            this.HandleComboSit();
 
             this.SyncSitState();
 
@@ -450,6 +403,53 @@ namespace MovementOverhaul
                 };
                 ModEntry.Instance.LogDebug($"-> Triggering random emote: {emote}.");
                 Game1.player.doEmote(emote);
+            }
+        }
+
+        private void HandleComboSit() {
+            if (!ModEntry.Instance.Config.EnableComboSit) return;
+            
+            float windowSec = ModEntry.Instance.Config.ComboSitWindowSeconds;
+            int repsRequired = Math.Max(2, ModEntry.Instance.Config.ComboSitRepsRequired);
+
+            if (this.comboSitWindowTimer <= 0)
+            {
+                this.comboSitWindowTimer = Math.Max(0.5f, windowSec);
+                this.comboSitCount = 0;
+                this.comboSitTriggered = false;
+            }
+
+            this.comboSitCount++;
+            if (this.comboSitTriggered || this.comboSitCount < repsRequired) return;
+
+            this.comboSitTriggered = true;
+            this.comboSparklingText = new SparklingText(
+                font: Game1.smallFont,
+                text: this.Helper.Translation.Get("hud.combo-sit-message"),
+                color: Color.Gold,
+                sparkleColor: Color.White
+            );
+
+            float energyOnComboSit = ModEntry.Instance.Config.EnergyOnComboSit;
+            if (energyOnComboSit > 0) Game1.player.stamina = Math.Min(Game1.player.MaxStamina, Game1.player.stamina + energyOnComboSit);
+        }
+        
+        private void HandleComboSitTick()
+        {
+            if (!ModEntry.Instance.Config.EnableComboSit) return;
+
+            if (this.comboSparklingText != null && this.comboSparklingText.update(Game1.currentGameTime))
+                this.comboSparklingText = null;
+                    
+            float elapsedComboSeconds = (float)Game1.currentGameTime.ElapsedGameTime.TotalSeconds;
+            if (this.comboSitWindowTimer <= 0) return;
+            
+            this.comboSitWindowTimer -= elapsedComboSeconds;
+            if (this.comboSitWindowTimer <= 0)
+            {
+                this.comboSitWindowTimer = 0;
+                this.comboSitCount = 0;
+                this.comboSitTriggered = false;
             }
         }
 
