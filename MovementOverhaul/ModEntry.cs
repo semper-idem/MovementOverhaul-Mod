@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.Xna.Framework;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
@@ -138,6 +138,10 @@ namespace MovementOverhaul
         public bool EnableSit { get; set; } = true;
         public SButton SitKey { get; set; } = SButton.OemPeriod;
         public float SitRegenDelaySeconds { get; set; } = 1.5f;
+        public float EnergyOnSit { get; set; } = 0f;
+        public float ComboSitWindowSeconds { get; set; } = 1f;
+        public int ComboSitRepsRequired { get; set; } = 5;
+        public float EnergyOnComboSit { get; set; } = 0f;
         public float SitGroundRegenPerSecond { get; set; } = 5f;
         public float SitChairRegenPerSecond { get; set; } = 8f;
         public bool SocialSittingFriendship { get; set; } = true;
@@ -258,6 +262,7 @@ namespace MovementOverhaul
 
             helper.Events.Input.ButtonPressed += SitLogic.OnButtonPressed;
             helper.Events.GameLoop.UpdateTicked += SitLogic.OnUpdateTicked;
+            helper.Events.Display.RenderedWorld += SitLogic.OnRenderedWorld;
             helper.Events.GameLoop.UpdateTicking += JumpLogic.OnUpdateTicking;
             helper.Events.GameLoop.UpdateTicked += WalkStandLogic.OnUpdateTicked;
             helper.Events.Input.ButtonPressed += SprintLogic.OnButtonPressed;
@@ -521,6 +526,10 @@ namespace MovementOverhaul
             configMenu.AddBoolOption(mod: this.ModManifest, name: () => this.Helper.Translation.Get("config.enable-sit.name"), tooltip: () => this.Helper.Translation.Get("config.enable-sit.tooltip"), getValue: () => Config.EnableSit, setValue: value => Config.EnableSit = value);
             configMenu.AddKeybind(mod: this.ModManifest, name: () => this.Helper.Translation.Get("config.sit-key.name"), tooltip: () => this.Helper.Translation.Get("config.sit-key.tooltip"), getValue: () => Config.SitKey, setValue: value => Config.SitKey = value);
             configMenu.AddNumberOption(mod: this.ModManifest, name: () => this.Helper.Translation.Get("config.sit-regen-delay.name"), tooltip: () => this.Helper.Translation.Get("config.sit-regen-delay.tooltip"), min: 0f, max: 5f, interval: 0.5f, getValue: () => Config.SitRegenDelaySeconds, setValue: value => Config.SitRegenDelaySeconds = value);
+            configMenu.AddNumberOption(mod: this.ModManifest, name: () => this.Helper.Translation.Get("config.energy-on-sit.name"), tooltip: () => this.Helper.Translation.Get("config.energy-on-sit.tooltip"), min: 0f, max: 10f, interval: 0.5f, getValue: () => Config.EnergyOnSit, setValue: value => Config.EnergyOnSit = value);
+            configMenu.AddNumberOption(mod: this.ModManifest, name: () => this.Helper.Translation.Get("config.energy-on-combo-sit.name"), tooltip: () => this.Helper.Translation.Get("config.energy-on-combo-sit.tooltip"), min: 0f, max: 20f, interval: 0.5f, getValue: () => Config.EnergyOnComboSit, setValue: value => Config.EnergyOnComboSit = value);
+            configMenu.AddNumberOption(mod: this.ModManifest, name: () => this.Helper.Translation.Get("config.combo-sit-window.name"), tooltip: () => this.Helper.Translation.Get("config.combo-sit-window.tooltip"), min: 0.5f, max: 10f, interval: 0.1f, getValue: () => Config.ComboSitWindowSeconds, setValue: value => Config.ComboSitWindowSeconds = value);
+            configMenu.AddNumberOption(mod: this.ModManifest, name: () => this.Helper.Translation.Get("config.combo-sit-reps.name"), tooltip: () => this.Helper.Translation.Get("config.combo-sit-reps.tooltip"), min: 2f, max: 50f, interval: 1f, getValue: () => Config.ComboSitRepsRequired, setValue: value => Config.ComboSitRepsRequired = (int)value);
             configMenu.AddNumberOption(mod: this.ModManifest, name: () => this.Helper.Translation.Get("config.ground-regen-rate.name"), tooltip: () => this.Helper.Translation.Get("config.ground-regen-rate.tooltip"), min: 1f, max: 10f, interval: 0.5f, getValue: () => Config.SitGroundRegenPerSecond, setValue: value => Config.SitGroundRegenPerSecond = value);
             configMenu.AddNumberOption(mod: this.ModManifest, name: () => this.Helper.Translation.Get("config.chair-regen-rate.name"), tooltip: () => this.Helper.Translation.Get("config.chair-regen-rate.tooltip"), min: 1f, max: 15f, interval: 0.5f, getValue: () => Config.SitChairRegenPerSecond, setValue: value => Config.SitChairRegenPerSecond = value);
             configMenu.AddBoolOption(mod: this.ModManifest, name: () => this.Helper.Translation.Get("config.social-sitting.name"), tooltip: () => this.Helper.Translation.Get("config.social-sitting.tooltip"), getValue: () => Config.SocialSittingFriendship, setValue: value => Config.SocialSittingFriendship = value);

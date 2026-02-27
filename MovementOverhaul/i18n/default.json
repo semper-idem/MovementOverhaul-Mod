@@ -1,4 +1,4 @@
-﻿{
+{
   // == Config Menu ==
   "config.debug.title": "Debug Mode",
   "config.enable-debug.name": "Enable debug mode",
@@ -102,6 +102,14 @@
   "config.sit-key.tooltip": "The key to press to sit on the ground or cycle poses.",
   "config.sit-regen-delay.name": "Regen Delay (Seconds)",
   "config.sit-regen-delay.tooltip": "How long you must sit before stamina regeneration begins.",
+  "config.energy-on-sit.name": "Energy on Sit",
+  "config.energy-on-sit.tooltip": "Instant energy (stamina) restored when you sit down (ground or chair). 0 to disable.",
+  "config.energy-on-combo-sit.name": "Energy on Combo Sit",
+  "config.energy-on-combo-sit.tooltip": "Instant energy (stamina) restored when you perform a combosit. 0 to disable.",
+  "config.combo-sit-window.name": "Combo Sit Window (Seconds)",
+  "config.combo-sit-window.tooltip": "Time window in seconds to perform sit reps. Sitting this many times within the window shows 'Combo!'",
+  "config.combo-sit-reps.name": "Combo Sit Reps",
+  "config.combo-sit-reps.tooltip": "Number of ground-sits within the window required to trigger the 'Combo!' message.",
   "config.ground-regen-rate.name": "Ground Regen Rate",
   "config.ground-regen-rate.tooltip": "How much stamina you regenerate per second while sitting on the ground.",
   "config.chair-regen-rate.name": "Chair Regen Rate",
@@ -201,6 +209,7 @@
   "hud.social-sitting.pet": "{{petName}} appreciated your company.",
   "hud.warmed-buff": "You're all warmed up!",
   "hud.meditate-buff": "You feel focused...",
+  "hud.combo-sit-message": "Perfect!",
 
   // == Buffs ==
   "buff.warmed.name": "Warmed",

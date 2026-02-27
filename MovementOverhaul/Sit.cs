@@ -1,8 +1,9 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
+using StardewValley.BellsAndWhistles;
 using StardewValley.Buffs;
 using StardewValley.Characters;
 using StardewValley.Objects;
@@ -33,6 +34,12 @@ namespace MovementOverhaul
         private float fireCheckTimer = 5f;
         private float meditateTimer = 60f;
         private float particleIdleTimer = 10f;
+
+        private float comboSitWindowTimer = 0f;
+        private int comboSitCount = 0;
+        private bool comboSitTriggered = false;
+
+        private SparklingText? comboSparklingText;
 
         public SitLogic(IModHelper helper, IMonitor monitor, IMultiplayerHelper multiplayer, IManifest manifest)
         {
@@ -90,7 +97,25 @@ namespace MovementOverhaul
 
             if (!Context.IsWorldReady) return;
 
+            if (this.comboSparklingText != null && this.comboSparklingText.update(Game1.currentGameTime))
+                this.comboSparklingText = null;
+                    
+            float elapsedPerfSeconds = (float)Game1.currentGameTime.ElapsedGameTime.TotalSeconds;
+            if (this.comboSitWindowTimer > 0)
+            {
+                this.comboSitWindowTimer -= elapsedPerfSeconds;
+                if (this.comboSitWindowTimer <= 0)
+                {
+                    this.comboSitWindowTimer = 0;
+                    this.comboSitCount = 0;
+                    this.comboSitTriggered = false;
+                }
+            }
+
+            
+
             bool isSittingInChairThisTick = Game1.player.isSitting.Value;
+            
             if (isSittingInChairThisTick)
             {
                 float elapsedSeconds = (float)Game1.currentGameTime.ElapsedGameTime.TotalSeconds;
@@ -98,6 +123,9 @@ namespace MovementOverhaul
                 {
                     ModEntry.Instance.LogDebug("Player just sat in a chair. Starting regen delay timer.");
                     this.sitRegenDelayTimer = ModEntry.Instance.Config.SitRegenDelaySeconds;
+                    float energyOnSit = ModEntry.Instance.Config.EnergyOnSit;
+                    if (energyOnSit > 0)
+                        Game1.player.stamina = Math.Min(Game1.player.MaxStamina, Game1.player.stamina + energyOnSit);
                 }
 
                 if (this.sitRegenDelayTimer > 0)
@@ -163,6 +191,35 @@ namespace MovementOverhaul
             if (this.IsSittingOnGround) return;
             ModEntry.Instance.LogDebug("NOW GROUND SITTING! YEAH DIRTY PANTS!");
 
+            float windowSec = ModEntry.Instance.Config.ComboSitWindowSeconds;
+            int repsRequired = Math.Max(2, ModEntry.Instance.Config.ComboSitRepsRequired);
+
+            if (this.comboSitWindowTimer <= 0)
+            {
+                this.comboSitWindowTimer = Math.Max(0.5f, windowSec);
+                this.comboSitCount = 0;
+                this.comboSitTriggered = false;
+            }
+
+            this.comboSitCount++;
+            if (!this.comboSitTriggered && this.comboSitCount >= repsRequired)
+            {
+                this.comboSitTriggered = true;
+                
+
+                this.comboSparklingText = new SparklingText(
+                    font: Game1.smallFont,
+                    text: this.Helper.Translation.Get("hud.combo-sit-message"),
+                    color: Color.Gold,
+                    sparkleColor: Color.White
+                );
+                float energyOnComboSit = ModEntry.Instance.Config.EnergyOnComboSit;
+                if (energyOnComboSit > 0)
+                {
+                    Game1.player.stamina = Math.Min(Game1.player.MaxStamina, Game1.player.stamina + energyOnComboSit);
+                }
+            }
+
             this.isSittingOnGround = true;
             Game1.player.canMove = false;
             Game1.player.completelyStopAnimatingOrDoingAction();
@@ -190,6 +247,12 @@ namespace MovementOverhaul
             ModEntry.Instance.LogDebug($"Sit frame set to {this.sittingFrame} based on direction {Game1.player.FacingDirection}.");
 
             Game1.playSound("pickUpItem");
+
+            float energyOnSit = ModEntry.Instance.Config.EnergyOnSit;
+            if (energyOnSit > 0) 
+            {
+                Game1.player.stamina = Math.Min(Game1.player.MaxStamina, Game1.player.stamina + energyOnSit);
+            }
 
             this.SyncSitState();
 
@@ -388,6 +451,23 @@ namespace MovementOverhaul
                 ModEntry.Instance.LogDebug($"-> Triggering random emote: {emote}.");
                 Game1.player.doEmote(emote);
             }
+        }
+
+        public static void OnRenderedWorld(object? sender, StardewModdingAPI.Events.RenderedWorldEventArgs e)
+        {
+            ModEntry.SitLogic?.DrawComboText();
+        }
+
+        public void DrawComboText()
+        {
+            if (this.comboSparklingText == null) return;
+            
+            Vector2 playerScreenCenter = Game1.GlobalToLocal(
+                Game1.viewport,
+                Game1.player.getStandingPosition()
+            );
+            Vector2 worldPos = playerScreenCenter + new Vector2(-(this.comboSparklingText.textWidth * 0.5f +1), -128f);
+            this.comboSparklingText.draw(Game1.spriteBatch, worldPos);
         }
     }
 }
